@@ -97,7 +97,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--pri);backgr
 <nav class="nav" id="nav"></nav>
 <div id="toast"></div>
 <div id="ov"><div>Nhấn giữ ảnh để lưu · <a href="#" onclick="ov.style.display='none';return false" style="color:#fff">Đóng</a></div><img id="ovi" alt=""></div>
-<input type="file" id="file" accept="image/*" capture="environment" hidden>
+<input type="file" id="file" accept="image/*" hidden>
 <script>
 const $=id=>document.getElementById(id), app=$('app'), ov=$('ov');
 const fmt=n=>Math.round(n||0).toLocaleString('vi-VN')+'đ';
