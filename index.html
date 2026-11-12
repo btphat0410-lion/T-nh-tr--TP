@@ -140,18 +140,27 @@ async function readMeterGemini(blob){
   const key=(S.set.geminiKey||'').trim();
   if(!key)throw {code:'no_key'};
   const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result.split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
-  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`;
-  const body={contents:[{parts:[{inline_data:{mime_type:'image/jpeg',data:b64}},{text:'Đọc chỉ số đồng hồ trong ảnh. Chỉ lấy các chữ số đen nguyên (bỏ chữ số đỏ/thập phân). Trả về JSON: {"reading": <số nguyên hoặc null>}. Không giải thích gì thêm.'}]}]};
+  // Support both AIzaSy... and AQ.... key formats (both are valid Google AI Studio keys)
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`;
+  const body={contents:[{parts:[
+    {inline_data:{mime_type:'image/jpeg',data:b64}},
+    {text:'Đọc chỉ số đồng hồ điện hoặc nước trong ảnh này. Chỉ lấy dãy số nguyên màu đen (bỏ qua số thập phân màu đỏ hoặc số sau dấu phẩy). Bỏ số 0 vô nghĩa đứng đầu. Chỉ trả về JSON: {"reading": <số nguyên>} hoặc {"reading": null} nếu không đọc được. Không giải thích thêm.'}
+  ]}]};
   const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),12000);
-  try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
+  try{
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
     clearTimeout(tid);
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw{code:'api',msg:(e.error&&e.error.message)||r.status}}
+    if(!r.ok){
+      let msg=`HTTP ${r.status}`;
+      try{const e=await r.json();msg=(e.error&&e.error.message)||msg}catch(e){}
+      throw{code:'api',msg}}
     const d=await r.json();
     const text=(d.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
     const m=text.match(/\{[\s\S]*?\}/);
-    let reading=null;try{reading=(m?JSON.parse(m[0]):null)?.reading}catch(e){}
-    return reading}
-  finally{clearTimeout(tid)}}
+    let reading=null;
+    try{reading=(m?JSON.parse(m[0]):null)?.reading}catch(e){}
+    return reading
+  }finally{clearTimeout(tid)}}
 
 const nv=(b,k)=>b['n'+k]===''?b['o'+k]:num(b['n'+k]);
 
@@ -249,10 +258,15 @@ $('file').onchange=async e=>{
     if(aEl)aEl.textContent=`✅ AI đọc: ${+reading} (hãy kiểm tra lại)`;calc();
   }catch(err){
     if(aEl)aEl.textContent='';
-    if(err&&err.code==='no_key')return toast('Chưa nhập Gemini API Key trong Cài đặt');
-    if(err&&err.code==='api')return toast('Lỗi Gemini API: '+(err.msg||''));
-    if(err&&err.name==='AbortError')return toast('Hết thời gian chờ, thử lại');
-    toast('Lỗi đọc ảnh, nhập tay hoặc kiểm tra API Key');}};
+    if(err&&err.code==='no_key')return toast('Chưa nhập Gemini API Key trong Cài đặt ⚙️');
+    if(err&&err.code==='api'){
+      const m=err.msg||'';
+      if(m.includes('API_KEY_INVALID')||m.includes('invalid'))return toast('API Key không hợp lệ, kiểm tra lại trong Cài đặt');
+      if(m.includes('quota')||m.includes('QUOTA'))return toast('Đã hết quota miễn phí hôm nay, thử lại ngày mai');
+      return toast('Lỗi Gemini: '+m.slice(0,80));
+    }
+    if(err&&err.name==='AbortError')return toast('Hết thời gian chờ (12s), thử lại hoặc nhập tay');
+    toast('Lỗi đọc ảnh — nhập tay hoặc kiểm tra kết nối mạng');}};
 
 /* ---- Finish bill ---- */
 function finish(){
@@ -370,8 +384,8 @@ app.innerHTML=`<h1>Cài đặt</h1>
 <div class="gemkey">
 <h2>🔑 Gemini API Key <span style="font-size:12px;font-weight:400;opacity:.8">(miễn phí)</span></h2>
 <div class="mut" style="margin:4px 0 10px">Dùng để đọc số đồng hồ bằng AI · <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#1a73e8">Lấy key miễn phí tại đây →</a></div>
-<input id="sgk" type="password" value="${esc(s.geminiKey||'')}" placeholder="AIzaSy..." oninput="S.set.geminiKey=this.value.trim();save()">
-<div class="mut" style="margin-top:6px">${s.geminiKey?'✅ Đã có key · Nhập key mới để thay đổi':'⚠️ Chưa có key — không thể đọc ảnh tự động'}</div>
+<input id="sgk" value="${esc(s.geminiKey||'')}" placeholder="Dán key vào đây (AIzaSy... hoặc AQ....)" oninput="S.set.geminiKey=this.value.trim();save()">
+<div class="mut" style="margin-top:6px">${s.geminiKey?`✅ Đã có key (${esc(s.geminiKey.slice(0,8))}...) · Dán key mới để thay đổi`:'⚠️ Chưa có key — không thể đọc ảnh tự động'}</div>
 </div>
 <div class="card"><div class="mut" style="margin-bottom:6px">Giá & tiền phòng mặc định khi thêm phòng mới</div>
 <div class="row"><div><label>Giá điện (đ/kWh)</label><input id="se" type="number" value="${s.elec}"></div><div><label>Giá nước (đ/m³)</label><input id="sw" type="number" value="${s.water}"></div></div>
