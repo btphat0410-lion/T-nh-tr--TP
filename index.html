@@ -141,7 +141,7 @@ async function readMeterGemini(blob){
   if(!key)throw {code:'no_key'};
   const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result.split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
   // Support both AIzaSy... and AQ.... key formats (both are valid Google AI Studio keys)
-  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`;
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`;
   const body={contents:[{parts:[
     {inline_data:{mime_type:'image/jpeg',data:b64}},
     {text:'Đọc chỉ số đồng hồ điện hoặc nước trong ảnh này. Chỉ lấy dãy số nguyên màu đen (bỏ qua số thập phân màu đỏ hoặc số sau dấu phẩy). Bỏ số 0 vô nghĩa đứng đầu. Chỉ trả về JSON: {"reading": <số nguyên>} hoặc {"reading": null} nếu không đọc được. Không giải thích thêm.'}
