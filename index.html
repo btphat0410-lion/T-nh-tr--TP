@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tính Tiền Trọ AI</title>
-<script>document.write('<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://w3.org viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">')</script>
-<script src="https://cloudflare.com"></script>
-<script src="https://cloudflare.com"></script>
+<script>document.write('<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{color-scheme:light;--bg:#eef3fa;--card:#fff;--tx:#14203a;--mut:#66738a;--br:#e0e7f2;--pri:#1f5fd0;--onpri:#fff;--fld:#f2f5fb;--err:#d03b2b;--acc:#e3edfd;--g1:#2f7bf0;--g2:#1b46a8;--sh:0 1px 2px rgba(16,32,70,.05),0 10px 28px rgba(16,32,70,.07);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0e1522;--card:#172033;--tx:#e8eef9;--mut:#95a3bd;--br:#27344f;--pri:#6ea8ff;--onpri:#06101f;--fld:#202b41;--err:#ff7b6b;--acc:#1b2a47;--g1:#3b7fe6;--g2:#1f4aa8;--sh:0 1px 2px #0006,0 10px 28px #0004}}
@@ -54,7 +54,7 @@ input:focus,select:focus{outline:0;border-color:var(--pri);background:var(--card
 .invw{overflow-x:auto;padding:10px!important;background:var(--fld)!important}
 .inv{width:580px;background:#fff;color:#17233b;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:13px;margin:0 auto;line-height:1.45}
 .inv .hd{background:linear-gradient(135deg,#2f7bf0,#1b46a8);color:#fff;padding:26px 30px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
-.inv .hd h3{margin:0;font-size:21px;letter-spacing:.5px}.inv .hd p{margin:4px 0 0;opacity:.85;font-size:12px}
+.inv .hd h3{margin:0;font-size:22px;letter-spacing:.5px}.inv .hd p{margin:4px 0 0;opacity:.85;font-size:12px}
 .inv .hl{display:flex;align-items:center;gap:14px}.inv .lg{width:54px;height:54px;object-fit:contain;background:#fff;border-radius:12px;padding:4px}
 .inv .no{text-align:right;font-size:11px;opacity:.9;white-space:nowrap}.inv .no b{display:block;font-size:14px;margin-top:2px}
 .inv .bd{padding:22px 30px 26px}
@@ -72,9 +72,6 @@ input:focus,select:focus{outline:0;border-color:var(--pri);background:var(--card
 .inv .b{margin-top:16px;padding:12px 14px;border:1px dashed #9db9ea;border-radius:10px;font-size:12px;white-space:pre-line;background:#fafcff}
 .inv .sg{display:grid;grid-template-columns:1fr 1fr;text-align:center;margin-top:22px;font-size:12px}.inv .sg i{display:block;height:46px}.inv .sg small{color:#76839a}
 .inv .ft{text-align:center;color:#8a96ac;font-size:11px;margin-top:18px;border-top:1px solid #e5ebf5;padding-top:12px}
-.role-sw{display:flex;background:var(--fld);padding:4px;border-radius:14px;margin-bottom:12px}
-.role-sw button{flex:1;border:0;background:none;padding:9px;border-radius:11px;font:inherit;font-size:13px;font-weight:700;color:var(--mut);cursor:pointer;transition:.15s}
-.role-sw button.on{background:var(--card);color:var(--pri);box-shadow:0 2px 6px rgba(0,0,0,.08)}
 </style>
 </head>
 <body>
@@ -83,10 +80,193 @@ input:focus,select:focus{outline:0;border-color:var(--pri);background:var(--card
 <nav class="nav" id="nav"></nav>
 <div id="toast"></div>
 <div id="ov"><div>Nhấn giữ ảnh để lưu · <a href="#" onclick="ov.style.display='none';return false" style="color:#fff">Đóng</a></div><img id="ovi" alt=""></div>
-<input type="file" id="file" accept="image/*" hidden>
+<input type="file" id="file" accept="image/*" capture="environment" hidden>
 <script>
 const $=id=>document.getElementById(id), app=$('app'), ov=$('ov');
 const fmt=n=>Math.round(n||0).toLocaleString('vi-VN')+'đ';
 const num=v=>{const x=parseFloat(String(v).replace(',','.'));return isNaN(x)?0:x};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let S={rooms:[],hist:[],set:{elec:4000,water:20000,landlord:'',bank:'',geminiKey:'',extras:[{name:'Rác',amount:20000},{name:'Wifi',amount:50000}]}};
+let S={rooms:[],hist:[],set:{elec:4000,water:20000,landlord:'',bank:'',extras:[{name:'Rác',amount:20000},{name:'Wifi',amount:50000}]}};
+try{const r=localStorage.getItem('tro_v1');if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const save=()=>{try{localStorage.setItem('tro_v1',JSON.stringify(S))}catch(e){toast('Không lưu được dữ liệu trên trình duyệt này')}};
+const hasC=()=>typeof claude!=='undefined'&&claude&&claude.use;
+async function saveFile(name,blob){const dl=hasC()?await claude.use('downloads'):null;
+if(dl){await dl.save({filename:name,data:blob});return}
+const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+async function readMeter(blob,p){
+if(hasC()){const sm=await claude.use('sample');if(!sm)throw{code:'na'};return sm.json([{role:'user',content:p}],{images:[blob],cache:false})}
+const d=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result.split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
+const r=await fetch('/api/read-meter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:d,prompt:p})});
+if(!r.ok)throw{code:'api'};return r.json()}
+const nv=(b,k)=>b['n'+k]===''?b['o'+k]:num(b['n'+k]);
+const INVT=[['old','Cột Chỉ số cũ'],['new','Cột Chỉ số mới'],['use','Cột Tiêu thụ'],['price','Cột Đơn giá'],['tenant','Tên người thuê'],['landlord','Tên chủ trọ'],['logo','Logo trên phiếu'],['words','Số tiền bằng chữ'],['bank','Thông tin chuyển khoản'],['sign','Chỗ ký tên'],['thanks','Lời cảm ơn']];
+function fixS(){S.set=S.set||{};const d={};INVT.forEach(t=>d[t[0]]=true);S.set.inv=Object.assign(d,S.set.inv||{})}
+fixS();
+function setTop(){const l=$('lg'),g=S.set.logo;l.innerHTML=g?`<img src="${g}" alt="">`:'đ';l.classList.toggle('img',!!g)}
+let V='rooms',cur=null,B=null,lastRec=null,tt;
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3200)}
+function go(v,id){V=v;cur=id??null;render();scrollTo(0,0)}
+function nav(){const t=[['rooms','🏠','Phòng'],['hist','🧾','Phiếu thu'],['set','⚙️','Cài đặt']];
+$('nav').innerHTML=t.map(([k,i,l])=>`<button class="${(V==k||(k=='rooms'&&['room','bill','inv'].includes(V)))?'on':''}" onclick="go('${k}')"><span>${i}</span>${l}</button>`).join('')}
+function render(){nav();setTop();({rooms:vRooms,room:vRoom,bill:vBill,hist:vHist,set:vSet,inv:vInv})[V]()}
+
+/* ---------- Danh sách phòng ---------- */
+function vRooms(){
+app.innerHTML=`<h1>Phòng trọ</h1><div class="mut">Chọn phòng để chốt tiền tháng này</div>`+
+(S.rooms.length?S.rooms.map(r=>`<div class="card"><div class="row sp"><div class="row" style="gap:12px"><div class="av">${esc((r.name.match(/\d+/)||[r.name[0]||'P'])[0])}</div><div><h2>${esc(r.name)}</h2><div class="mut">${esc(r.tenant||'Chưa có người thuê')}</div></div></div><button class="btn sec sm" onclick="go('room','${r.id}')">Sửa</button></div><div class="chips"><span>⚡ ${r.lastE} kWh</span><span>💧 ${r.lastW} m³</span><span>🏷 ${fmt(r.rent)}</span></div><button class="btn" onclick="startBill('${r.id}')">Chốt tiền tháng này</button></div>`).join(''):`<div class="card mut">Chưa có phòng nào. Thêm phòng đầu tiên để bắt đầu.</div>`)+
+`<button class="btn sec" onclick="go('room','new')">+ Thêm phòng</button>`}
+
+/* ---------- Thêm / sửa phòng ---------- */
+function vRoom(){
+const n=cur==='new',r=n?{name:'',tenant:'',rent:0,elec:S.set.elec,water:S.set.water,lastE:0,lastW:0,extras:S.set.extras.map(e=>({...e,on:true}))}:S.rooms.find(x=>x.id===cur);
+window._rx=JSON.parse(JSON.stringify(r.extras||[]));
+app.innerHTML=`<button class="back" onclick="go('rooms')">‹ Quay lại</button><h1>${n?'Thêm phòng':'Sửa '+esc(r.name)}</h1>
+<div class="card"><label>Tên phòng</label><input id="rn" value="${esc(r.name)}" placeholder="Phòng 01">
+<label>Người thuê</label><input id="rt" value="${esc(r.tenant)}">
+<label>Tiền phòng (đ/tháng)</label><input id="rr" type="number" inputmode="numeric" value="${r.rent}">
+<div class="row"><div><label>Giá điện (đ/kWh)</label><input id="re" type="number" value="${r.elec}"></div><div><label>Giá nước (đ/m³)</label><input id="rw" type="number" value="${r.water}"></div></div>
+<div class="row"><div><label>Chỉ số điện hiện tại</label><input id="rle" type="number" value="${r.lastE}"></div><div><label>Chỉ số nước hiện tại</label><input id="rlw" type="number" value="${r.lastW}"></div></div>
+<div class="mut" style="margin-top:6px">Đây là “chỉ số cũ” cho kỳ tới. Các kỳ sau app tự cập nhật.</div></div>
+<div class="card"><h2>Khoản cố định khác</h2><div id="xl"></div><button class="btn sec" style="margin-top:10px" onclick="_rx.push({name:'',amount:0,on:true});rx()">+ Thêm khoản (wifi, rác, giữ xe…)</button></div>
+<button class="btn" onclick="saveRoom('${cur}')">Lưu phòng</button>
+${n?'':`<button class="btn dng" style="margin-top:10px" onclick="delRoom('${cur}')">Xóa phòng</button>`}`;rx()}
+function rx(){$('xl').innerHTML=_rx.map((e,i)=>`<div class="row" style="margin-top:8px"><input placeholder="Tên khoản" value="${esc(e.name)}" oninput="_rx[${i}].name=this.value" style="flex:2"><input type="number" placeholder="Số tiền" value="${e.amount}" oninput="_rx[${i}].amount=num(this.value)"><button class="x" onclick="_rx.splice(${i},1);rx()">✕</button></div>`).join('')}
+function saveRoom(id){
+const r={id:id==='new'?'r'+Date.now():id,name:$('rn').value.trim()||'Phòng mới',tenant:$('rt').value.trim(),rent:num($('rr').value),elec:num($('re').value),water:num($('rw').value),lastE:num($('rle').value),lastW:num($('rlw').value),extras:_rx.filter(e=>e.name)};
+const i=S.rooms.findIndex(x=>x.id===r.id);i<0?S.rooms.push(r):S.rooms[i]=r;save();toast('Đã lưu phòng');go('rooms')}
+function delRoom(id){if(!confirm('Xóa phòng này? Phiếu thu cũ vẫn được giữ.'))return;S.rooms=S.rooms.filter(r=>r.id!==id);save();go('rooms')}
+
+/* ---------- Chốt tiền ---------- */
+function startBill(id){const r=S.rooms.find(x=>x.id===id),d=new Date(),lh=S.hist.find(h=>h.roomId===id);let m=d.getMonth()+1,y=d.getFullYear();if(lh){m=lh.m+1;y=lh.y;if(m>12){m=1;y++}}
+B={id,m,y,oE:r.lastE,oW:r.lastW,nE:'',nW:'',rentOn:true,ex:r.extras.map(e=>({...e,on:true})),first:!S.hist.some(h=>h.roomId===id)};go('bill',id)}
+function vBill(){
+const r=S.rooms.find(x=>x.id===B.id);
+const meter=(k,icon,name,price,unit)=>`<div class="card"><div class="row sp"><div><h2 class="hh"><span class="chip ${k}">${icon}</span>${name}</h2><div class="mut">${fmt(price)}/${unit}</div></div><div class="price" id="p${k}">0đ</div></div>
+<div class="row" style="align-items:end"><div><label>Chỉ số cũ</label><input class="ro" type="number" id="o${k}" value="${B['o'+k]}" oninput="B.o${k}=num(this.value);calc()"></div>
+<div><label>Chỉ số mới</label><input type="number" inputmode="decimal" id="n${k}" value="${B['n'+k]}" placeholder="0" oninput="B.n${k}=this.value;calc()"></div>
+<button class="ico" style="flex:none" title="Chụp ảnh đồng hồ" onclick="pick('${k}')">📷</button></div>
+<div class="mut" style="margin-top:6px" id="u${k}"></div><div class="warn" id="w${k}"></div><div class="mut" id="a${k}"></div></div>`;
+app.innerHTML=`<button class="back" onclick="go('rooms')">‹ Quay lại</button><h1>Chốt tiền ${esc(r.name)}</h1><div class="mut">${esc(r.tenant)} · Chỉ số cũ lấy từ kỳ trước</div>
+${B.first?`<div class="card" style="background:var(--acc)"><b>Kỳ đầu tiên của phòng này</b><div class="mut">Nhập tay “Chỉ số cũ” đang hiện trên đồng hồ. Từ kỳ sau app tự điền.</div></div>`:''}
+<div class="row" style="margin-top:12px"><div><label>Tháng</label><select onchange="B.m=+this.value">${[...Array(12)].map((_,i)=>`<option value="${i+1}" ${B.m==i+1?'selected':''}>Tháng ${i+1}</option>`).join('')}</select></div>
+<div style="flex:.6"><label>Năm</label><select onchange="B.y=+this.value">${[...Array(9)].map((_,i)=>2024+i).map(y=>`<option ${B.y==y?'selected':''}>${y}</option>`).join('')}</select></div></div>
+${meter('E','⚡','Điện',r.elec,'kWh')}${meter('W','💧','Nước',r.water,'m³')}
+<div class="card"><div class="row sp"><label class="tg" style="margin:0;font-size:16px;color:var(--tx)"><input type="checkbox" ${B.rentOn?'checked':''} onchange="B.rentOn=this.checked;calc()"> <b>Tiền phòng</b></label><div class="price">${fmt(r.rent)}</div></div></div>
+${B.ex.length?`<div class="card"><h2>Khoản khác</h2>${B.ex.map((e,i)=>`<div class="row sp" style="margin-top:10px"><label class="tg" style="margin:0;font-size:15px;color:var(--tx)"><input type="checkbox" ${e.on?'checked':''} onchange="B.ex[${i}].on=this.checked;calc()"> ${esc(e.name)}</label><span class="price">${fmt(e.amount)}</span></div>`).join('')}</div>`:''}
+<div class="card hero"><div class="mut">Tổng cộng cần thu</div><div id="tot">0đ</div></div>
+<button class="btn" id="sv" onclick="finish()">Lưu & tạo phiếu thu</button><div class="warn" id="why" style="text-align:center"></div>`;calc()}
+function lines(r,b){
+const L=[],ne=nv(b,'E'),nw=nv(b,'W'),ue=Math.max(0,ne-b.oE),uw=Math.max(0,nw-b.oW);
+L.push({l:'Tiền điện',d:`${b.oE} → ${ne} = ${+ue.toFixed(2)} kWh × ${fmt(r.elec)}`,a:ue*r.elec,k:'E',o:b.oE,n:ne,q:+ue.toFixed(2),p:r.elec,u:'kWh'});
+L.push({l:'Tiền nước',d:`${b.oW} → ${nw} = ${+uw.toFixed(2)} m³ × ${fmt(r.water)}`,a:uw*r.water,k:'W',o:b.oW,n:nw,q:+uw.toFixed(2),p:r.water,u:'m³'});
+if(b.rentOn)L.push({l:'Tiền phòng',d:'',a:r.rent});
+b.ex.filter(e=>e.on).forEach(e=>L.push({l:e.name,d:'',a:num(e.amount)}));return L}
+function calc(){
+const r=S.rooms.find(x=>x.id===B.id),L=lines(r,B);let bad=false;
+['E','W'].forEach(k=>{const u=nv(B,k)-B['o'+k],ln=L.find(x=>x.k===k);
+$('p'+k).textContent=fmt(u>=0?ln.a:0);$('u'+k).innerHTML=`Tiêu thụ: <b>${+Math.max(0,u).toFixed(2)}</b> ${k=='E'?'kWh':'m³'}${B['n'+k]===''?' (chưa nhập, tính là 0)':''}`;
+const w=u<0;$('w'+k).textContent=w?'Chỉ số mới nhỏ hơn chỉ số cũ, hãy kiểm tra lại':'';if(w)bad=true});
+$('tot').textContent=fmt(L.reduce((s,x)=>s+x.a,0));$('sv').disabled=bad;$('why').textContent=bad?'Chưa lưu được: chỉ số mới không được nhỏ hơn chỉ số cũ':''}
+
+/* ---------- Đọc số bằng AI ---------- */
+let pk='E';
+function pick(k){pk=k;$('file').value='';$('file').click()}
+$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;const k=pk;const msg=$('a'+k);
+msg.textContent='🤖 Đang đọc ảnh…';
+try{
+const blob=await shrink(f);
+const kind=k==='E'?'đồng hồ điện (kWh)':'đồng hồ nước (m³)';
+const p=`Đây là ảnh ${kind}. Hãy đọc chỉ số hiện trên đồng hồ. Chỉ lấy phần số nguyên (các chữ số đen), bỏ chữ số đỏ/sau dấu thập phân. Bỏ số 0 đứng đầu vô nghĩa. Chỉ trả về JSON dạng {"reading": <số hoặc null nếu không đọc được>}.`;
+const r=await readMeter(blob,p);
+const v=r&&typeof r==='object'?r.reading:r;
+if(v==null||isNaN(+v)){msg.textContent='';return toast('Không đọc được số, hãy chụp rõ hơn hoặc nhập tay')}
+B['n'+k]=String(+v);$('n'+k).value=B['n'+k];msg.textContent='✅ AI đã đọc: '+(+v)+' (hãy kiểm tra lại)';calc()
+}catch(err){msg.textContent='';toast(err&&err.code==='not_granted'?'Bạn chưa cho phép dùng AI':'Lỗi đọc ảnh, hãy nhập tay')}};
+function shrink(f){return new Promise((ok,no)=>{const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const s=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?ok(b):no(),'image/jpeg',.82)};im.onerror=no;im.src=u})}
+
+/* ---------- Lưu & phiếu thu ---------- */
+function finish(){
+const r=S.rooms.find(x=>x.id===B.id),L=lines(r,B);
+if(S.hist.some(h=>h.roomId===r.id&&h.m===B.m&&h.y===B.y)&&!confirm(`Phòng này đã có phiếu tháng ${B.m}/${B.y}. Vẫn tạo thêm phiếu?`))return;
+const ne=nv(B,'E'),nw=nv(B,'W');
+const rec={id:'h'+Date.now(),roomId:r.id,room:r.name,tenant:r.tenant,m:B.m,y:B.y,oE:B.oE,oW:B.oW,nE:ne,nW:nw,lines:L.map(({l,d,a,o,n,q,p,u})=>({l,d,a,o,n,q,p,u})),total:L.reduce((s,x)=>s+x.a,0),date:new Date().toLocaleDateString('vi-VN')};
+S.hist.unshift(rec);r.lastE=ne;r.lastW=nw;save();lastRec=rec;toast('Đã lưu. Chỉ số mới thành chỉ số cũ của kỳ sau');go('inv',rec.id)}
+function words(n){n=Math.round(n);if(!n)return 'Không đồng';const D=['không','một','hai','ba','bốn','năm','sáu','bảy','tám','chín'],U=['','nghìn','triệu','tỷ'];
+const th=(x,f)=>{const h=Math.floor(x/100),t=Math.floor(x%100/10),u=x%10,r=[];if(h||f)r.push(D[h]+' trăm');
+if(t>1){r.push(D[t]+' mươi');r.push(u==1?'mốt':u==5?'lăm':u?D[u]:'')}else if(t==1){r.push('mười');r.push(u==5?'lăm':u?D[u]:'')}else if(u){if(h||f)r.push('lẻ');r.push(D[u])}
+return r.filter(Boolean).join(' ')};
+const g=[];while(n>0){g.push(n%1000);n=Math.floor(n/1000)}
+const o=[];for(let k=g.length-1;k>=0;k--)if(g[k])o.push((th(g[k],k<g.length-1)+' '+U[k]).trim());
+const t=o.join(' ')+' đồng';return t[0].toUpperCase()+t.slice(1)}
+function invHTML(h){const s=S.set,v=s.inv,no=`PT${String(h.y).slice(2)}${String(h.m).padStart(2,'0')}-${h.id.slice(-4)}`;
+const cols=[['old','Chỉ số cũ'],['new','Chỉ số mới'],['use','Tiêu thụ'],['price','Đơn giá']].filter(c=>v[c[0]]);
+const rows=h.lines.map(x=>{
+let xo=x.o,xn=x.n,xq=x.q,xp=x.p,xu=x.u,hasMeter=x.q!=null&&x.u;
+if(!hasMeter&&x.d){const dm=x.d.match(/([\d.]+)\s*→\s*([\d.]+)\s*=\s*([\d.]+)\s*(kWh|m³|m3)\s*×\s*([\d.,]+)/);
+if(dm){xo=+dm[1];xn=+dm[2];xq=+dm[3];xu=dm[4]==='m3'?'m³':dm[4];xp=+(dm[5].replace(/\./g,'').replace(',','.'));hasMeter=true}}
+let m='';
+if(hasMeter){const val={old:xo,new:xn,use:`${xq} ${xu}`,price:fmt(xp)};m=cols.map(c=>`<td>${val[c[0]]}</td>`).join('')}
+else{m=cols.map(c=>`<td>${c[0]==='price'?fmt(x.a):c[0]==='use'?'1 tháng':'—'}</td>`).join('')}
+return `<tr><td>${esc(x.l)}</td>${m}<td>${fmt(x.a)}</td></tr>`}).join('');
+const info=[['Phòng',esc(h.room)],v.tenant&&['Người thuê',esc(h.tenant||'—')],['Ngày lập',h.date],v.landlord&&['Chủ trọ',esc(s.landlord||'—')]].filter(Boolean);
+return `<div class="hd"><div class="hl">${v.logo&&s.logo?`<img class="lg" src="${s.logo}" alt="">`:''}<div><h3>PHIẾU THU TIỀN TRỌ</h3><p>Kỳ thanh toán: Tháng ${h.m}/${h.y}</p></div></div><div class="no">Số phiếu<b>${no}</b></div></div>
+<div class="bd"><div class="info">${info.map(i=>`<div><small>${i[0]}</small><b>${i[1]}</b></div>`).join('')}</div>
+<table><thead><tr><th>Khoản mục</th>${cols.map(c=>`<th>${c[1]}</th>`).join('')}<th>Thành tiền</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="tt"><span>Tổng cộng</span><b>${fmt(h.total)}</b></div>${v.words?`<div class="w">Bằng chữ: ${words(h.total)}.</div>`:''}
+${v.bank&&s.bank?`<div class="b"><b>Thông tin thanh toán</b>\n${esc(s.bank)}</div>`:''}
+${v.sign?`<div class="sg"><div><b>Chủ trọ</b><br><small>(Ký, ghi rõ họ tên)</small><i></i></div><div><b>Người thuê</b><br><small>(Ký, ghi rõ họ tên)</small><i></i></div></div>`:''}
+${v.thanks?`<div class="ft">Cảm ơn quý khách đã thanh toán đúng hạn</div>`:''}</div>`}
+function fitInv(){const e=document.querySelector('.invw .inv');if(e)e.style.zoom=Math.min(1,(app.clientWidth-60)/e.offsetWidth)}
+function vInv(){const h=S.hist.find(x=>x.id===cur)||lastRec;if(!h)return go('hist');
+app.innerHTML=`<button class="back" onclick="go('hist')">‹ Phiếu thu</button><h1>Phiếu thu</h1><div class="invw card" style="padding:12px"><div class="inv">${invHTML(h)}</div></div>
+<div class="row"><button class="btn" onclick="exp('png')">🖼 Xuất ảnh</button><button class="btn" onclick="exp('pdf')">📄 Xuất PDF</button></div>
+${S.rooms.some(r=>r.id===h.roomId)?`<button class="btn sec" style="margin-top:10px" onclick="startBill('${h.roomId}')">Chốt tháng tiếp theo cho phòng này</button>`:''}
+<button class="btn sec" style="margin-top:10px" onclick="go('rooms')">Xong</button><button class="btn dng" style="margin-top:10px" onclick="delRec('${h.id}')">Xóa phiếu này</button>`;fitInv()}
+async function exp(t){
+const h=S.hist.find(x=>x.id===cur)||lastRec,name=`phieu-${h.room.replace(/\s+/g,'-')}-${h.m}-${h.y}`;
+const box=document.createElement('div');box.style.cssText='position:fixed;left:0;top:0;z-index:-1;pointer-events:none';
+const n=document.createElement('div');n.className='inv';n.innerHTML=invHTML(h);box.appendChild(n);document.body.appendChild(box);
+try{await (document.fonts&&document.fonts.ready);
+const c=await html2canvas(n,{scale:2,backgroundColor:'#ffffff',scrollX:0,scrollY:0,width:n.offsetWidth,height:n.offsetHeight});
+if(t==='png'){const b=await new Promise(r=>c.toBlob(r,'image/png'));await saveFile(name+'.png',b)}
+else{const {jsPDF}=window.jspdf,w=105,hh=c.height*w/c.width,d=new jsPDF({unit:'mm',format:[w+10,hh+10]});
+ d.addImage(c.toDataURL('image/png'),'PNG',5,5,w,hh);await saveFile(name+'.pdf',d.output('blob'))}
+}catch(e){if(!e||e.code!=='declined')toast('Không xuất được file')}finally{box.remove()}}
+
+/* ---------- Lịch sử ---------- */
+let HF='';
+function vHist(){
+const names={};S.hist.forEach(h=>names[h.roomId]=h.room);S.rooms.forEach(r=>names[r.id]=r.name);
+const ids=[...new Set(S.hist.map(h=>h.roomId))],L=S.hist.filter(h=>!HF||h.roomId===HF);
+app.innerHTML=`<h1>Lịch sử phiếu thu</h1><div class="mut">Các phiếu đã chốt, bấm vào để xem hoặc xuất lại</div>
+<label>Lọc theo phòng</label><select onchange="HF=this.value;vHist()"><option value="">Tất cả phòng</option>${ids.map(i=>`<option value="${i}" ${HF===i?'selected':''}>${esc(names[i])}</option>`).join('')}</select>`+
+(L.length?L.map(h=>`<div class="card item" onclick="go('inv','${h.id}')"><div class="row sp"><div><h2>${esc(h.room)}</h2><div class="mut">Tháng ${h.m}/${h.y} · ${esc(h.tenant)}</div><div class="price">${fmt(h.total)}</div></div><button class="btn dng" style="width:auto" onclick="event.stopPropagation();delRec('${h.id}')">🗑 Xóa</button></div></div>`).join(''):`<div class="card mut">Chưa có phiếu thu nào.</div>`)+
+(HF?`<button class="btn dng" style="margin-top:6px" onclick="delRoomHist()">Xóa toàn bộ lịch sử của phòng này</button>`:'')}
+function delRec(id){const h=S.hist.find(x=>x.id===id);if(!h||!confirm(`Xóa phiếu ${h.room} tháng ${h.m}/${h.y}?`))return;
+const newest=S.hist.find(x=>x.roomId===h.roomId)===h,r=S.rooms.find(x=>x.id===h.roomId);
+S.hist=S.hist.filter(x=>x.id!==id);
+if(newest&&r&&h.oE!=null&&confirm(`Đây là phiếu mới nhất của phòng. Trả chỉ số về số cũ (điện ${h.oE}, nước ${h.oW}) để chốt lại?`)){r.lastE=h.oE;r.lastW=h.oW}
+save();lastRec=null;toast('Đã xóa phiếu');V==='inv'?go('hist'):vHist()}
+function delRoomHist(){const n=S.hist.filter(h=>h.roomId===HF).length;if(!HF||!confirm(`Xóa toàn bộ ${n} phiếu của phòng này? Không thể hoàn tác.`))return;S.hist=S.hist.filter(h=>h.roomId!==HF);HF='';save();toast('Đã xóa lịch sử phòng');vHist()}
+
+/* ---------- Cài đặt ---------- */
+function vSet(){const s=S.set;window._sx=JSON.parse(JSON.stringify(s.extras));
+app.innerHTML=`<h1>Cài đặt</h1><div class="mut">Giá mặc định dùng khi thêm phòng mới (mỗi phòng vẫn sửa riêng được)</div>
+<div class="card"><div class="row"><div><label>Giá điện mặc định (đ/kWh)</label><input id="se" type="number" value="${s.elec}"></div><div><label>Giá nước mặc định (đ/m³)</label><input id="sw" type="number" value="${s.water}"></div></div>
+<h2 style="margin-top:16px">Khoản cố định mặc định</h2><div id="sxl"></div><button class="btn sec" style="margin-top:10px" onclick="_sx.push({name:'',amount:0});sx()">+ Thêm khoản</button></div>
+<div class="card"><h2>Thông tin in trên phiếu</h2><label>Tên chủ trọ / SĐT</label><input id="sl" value="${esc(s.landlord)}"><label>Thông tin chuyển khoản</label><input id="sb" value="${esc(s.bank)}" placeholder="VD: Vietcombank - 0123456789 - NGUYEN VAN A"></div>
+<div class="card"><h2>Logo</h2><div class="mut">Hiện ở đầu app và trên phiếu thu</div><div class="row" style="margin-top:12px"><div id="lgp" class="logo" style="width:64px;height:64px;flex:none;font-size:28px;overflow:hidden"></div><div><button class="btn sec" onclick="$('lf').click()">Chọn ảnh logo</button><button class="btn dng" style="margin-top:8px" onclick="S.set.logo='';save();setTop();lgp()">Dùng logo mặc định</button></div></div><input type="file" id="lf" accept="image/*" hidden onchange="setLogo(this.files[0])"></div>
+<div class="card"><h2>Hiển thị trên phiếu thu</h2><div class="mut">Bật/tắt từng mục, tự lưu ngay. Xem kết quả ở tab Phiếu thu.</div>${INVT.map(([k,l])=>`<label class="tg" style="font-size:15px;color:var(--tx);font-weight:500;margin:12px 0 0"><input type="checkbox" ${S.set.inv[k]?'checked':''} onchange="S.set.inv['${k}']=this.checked;save()"> ${l}</label>`).join('')}</div>
+<button class="btn" onclick="saveSet()">Lưu cài đặt</button>
+<button class="btn sec" style="margin-top:10px" onclick="backup()">⬇ Sao lưu dữ liệu</button><button class="btn sec" style="margin-top:10px" onclick="$('rf').click()">⬆ Khôi phục từ file sao lưu</button><input type="file" id="rf" accept=".json,application/json" hidden onchange="restore(this.files[0])">
+<div class="mut" style="margin-top:12px">Dữ liệu được lưu ngay trên trình duyệt này. Hãy sao lưu định kỳ để không mất khi xóa dữ liệu trình duyệt.</div>`;sx();lgp()}
+function sx(){$('sxl').innerHTML=_sx.map((e,i)=>`<div class="row" style="margin-top:8px"><input placeholder="Tên khoản" value="${esc(e.name)}" oninput="_sx[${i}].name=this.value" style="flex:2"><input type="number" value="${e.amount}" oninput="_sx[${i}].amount=num(this.value)"><button class="x" onclick="_sx.splice(${i},1);sx()">✕</button></div>`).join('')}
+function lgp(){const e=$('lgp'),g=S.set.logo;if(!e)return;e.innerHTML=g?`<img src="${g}" alt="">`:'đ';e.classList.toggle('img',!!g)}
+function setLogo(f){if(!f)return;const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const m=Math.min(1,256/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*m);c.height=Math.round(im.height*m);c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.set.logo=c.toDataURL('image/png');URL.revokeObjectURL(u);save();setTop();lgp();toast('Đã đổi logo')};im.onerror=()=>toast('Không đọc được ảnh');im.src=u}
+function saveSet(){S.set=Object.assign({},S.set,{elec:num($('se').value),water:num($('sw').value),landlord:$('sl').value,bank:$('sb').value,extras:_sx.filter(e=>e.name)});save();toast('Đã lưu cài đặt')}
+async function backup(){try{await saveFile('tinh-tien-tro-backup.json',new Blob([JSON.stringify(S)],{type:'application/json'}))}catch(e){}}
+function restore(f){if(!f)return;const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!Array.isArray(d.rooms)||!Array.isArray(d.hist))throw 0;if(!confirm('Khôi phục sẽ thay toàn bộ dữ liệu hiện tại. Tiếp tục?'))return;S=Object.assign(S,d);fixS();save();toast('Đã khôi phục dữ liệu');go('rooms')}catch(e){toast('File sao lưu không hợp lệ')}};fr.readAsText(f)}
+render();
+</script>
+</body>
+</html>
