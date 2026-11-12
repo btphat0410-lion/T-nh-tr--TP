@@ -136,31 +136,51 @@ function shrink(f,maxW=800,q=0.75){return new Promise((ok,no)=>{
   im.onerror=no;im.src=u})}
 
 /* ---- Gemini OCR ---- */
+let _geminiSDK=null;
+async function getGeminiSDK(){
+  if(_geminiSDK)return _geminiSDK;
+  // Official Google Generative AI SDK — handles CORS correctly from browser
+  const mod=await import('https://esm.run/@google/generative-ai');
+  _geminiSDK=mod;return mod;}
 async function readMeterGemini(blob){
   const key=(S.set.geminiKey||'').trim();
-  if(!key)throw {code:'no_key'};
+  if(!key)throw{code:'no_key'};
   const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result.split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
-  // Support both AIzaSy... and AQ.... key formats (both are valid Google AI Studio keys)
-  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`;
-  const body={contents:[{parts:[
-    {inline_data:{mime_type:'image/jpeg',data:b64}},
-    {text:'Đọc chỉ số đồng hồ điện hoặc nước trong ảnh này. Chỉ lấy dãy số nguyên màu đen (bỏ qua số thập phân màu đỏ hoặc số sau dấu phẩy). Bỏ số 0 vô nghĩa đứng đầu. Chỉ trả về JSON: {"reading": <số nguyên>} hoặc {"reading": null} nếu không đọc được. Không giải thích thêm.'}
-  ]}]};
-  const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),12000);
+  const prompt='Đọc chỉ số đồng hồ điện hoặc nước trong ảnh. Chỉ lấy dãy số nguyên màu đen (bỏ số thập phân màu đỏ/sau dấu phẩy). Bỏ số 0 vô nghĩa đứng đầu. Chỉ trả về JSON: {"reading":<số nguyên>} hoặc {"reading":null}. Không giải thích thêm.';
   try{
-    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
-    clearTimeout(tid);
-    if(!r.ok){
-      let msg=`HTTP ${r.status}`;
-      try{const e=await r.json();msg=(e.error&&e.error.message)||msg}catch(e){}
-      throw{code:'api',msg}}
-    const d=await r.json();
-    const text=(d.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
-    const m=text.match(/\{[\s\S]*?\}/);
-    let reading=null;
-    try{reading=(m?JSON.parse(m[0]):null)?.reading}catch(e){}
-    return reading
-  }finally{clearTimeout(tid)}}
+    const {GoogleGenerativeAI}=await getGeminiSDK();
+    const genAI=new GoogleGenerativeAI(key);
+    const model=genAI.getGenerativeModel({model:'gemini-1.5-flash'});
+    const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),20000);
+    try{
+      const result=await model.generateContent([
+        {inlineData:{mimeType:'image/jpeg',data:b64}},
+        prompt
+      ]);
+      clearTimeout(tid);
+      const text=(result.response.text()||'').trim();
+      const m=text.match(/\{[\s\S]*?\}/);
+      let reading=null;try{reading=(m?JSON.parse(m[0]):null)?.reading}catch(e){}
+      return reading;
+    }finally{clearTimeout(tid)}
+  }catch(err){
+    // If SDK fails (e.g. ESM blocked on Vercel), fallback to direct fetch with correct headers
+    if(err.code==='no_key')throw err;
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+    const ctrl2=new AbortController();const tid2=setTimeout(()=>ctrl2.abort(),20000);
+    try{
+      const r=await fetch(url,{method:'POST',
+        headers:{'Content-Type':'application/json','x-goog-api-key':key},
+        body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:'image/jpeg',data:b64}},{text:prompt}]}]}),
+        signal:ctrl2.signal,mode:'cors'});
+      clearTimeout(tid2);
+      if(!r.ok){let msg=`HTTP ${r.status}`;try{const e=await r.json();msg=(e.error&&e.error.message)||msg}catch(e){}throw{code:'api',msg}}
+      const d=await r.json();
+      const text=(d.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
+      const m=text.match(/\{[\s\S]*?\}/);
+      let reading=null;try{reading=(m?JSON.parse(m[0]):null)?.reading}catch(e){}
+      return reading;
+    }finally{clearTimeout(tid2)}}}
 
 const nv=(b,k)=>b['n'+k]===''?b['o'+k]:num(b['n'+k]);
 
@@ -265,8 +285,9 @@ $('file').onchange=async e=>{
       if(m.includes('quota')||m.includes('QUOTA'))return toast('Đã hết quota miễn phí hôm nay, thử lại ngày mai');
       return toast('Lỗi Gemini: '+m.slice(0,80));
     }
-    if(err&&err.name==='AbortError')return toast('Hết thời gian chờ (12s), thử lại hoặc nhập tay');
-    toast('Lỗi đọc ảnh — nhập tay hoặc kiểm tra kết nối mạng');}};
+    if(err&&err.name==='AbortError')return toast('Hết thời gian chờ, kiểm tra kết nối mạng rồi thử lại');
+    if(err&&(String(err).includes('fetch')||String(err).includes('network')))return toast('Lỗi mạng — kiểm tra kết nối rồi thử lại');
+    toast('Lỗi đọc ảnh: '+(err&&err.message||String(err)).slice(0,60));}};
 
 /* ---- Finish bill ---- */
 function finish(){
