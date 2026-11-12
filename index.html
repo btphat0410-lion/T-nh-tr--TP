@@ -105,12 +105,15 @@ const num=v=>{const x=parseFloat(String(v).replace(',','.'));return isNaN(x)?0:x
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---- State ---- */
-let S={rooms:[],hist:[],set:{elec:4000,water:20000,rent:0,landlord:'',bank:'',extras:[{name:'Rác',amount:20000},{name:'Wifi',amount:50000}],logo:'',geminiKey:'',invTitle:'PHIẾU THU TIỀN TRỌ',inv:{}}};
-try{const r=localStorage.getItem('tro_v1');if(r){const p=JSON.parse(r);S=Object.assign(S,p);S.set=Object.assign({elec:4000,water:20000,rent:0,landlord:'',bank:'',extras:[],logo:'',geminiKey:'',invTitle:'PHIẾU THU TIỀN TRỌ',inv:{}},p.set||{})}}catch(e){}
+let S={rooms:[],hist:[],set:{elec:4000,water:20000,rent:0,landlord:'',bank:'',extras:[{name:'Rác',amount:20000},{name:'Wifi',amount:50000}],logo:'',invTitle:'PHIẾU THU TIỀN TRỌ',inv:{}}};
+try{const r=localStorage.getItem('tro_v1');if(r){const p=JSON.parse(r);S=Object.assign(S,p);S.set=Object.assign({elec:4000,water:20000,rent:0,landlord:'',bank:'',extras:[],logo:'',invTitle:'PHIẾU THU TIỀN TRỌ',inv:{}},p.set||{})}}catch(e){}
+const hadLegacyGeminiKey=!!(S.set&&Object.prototype.hasOwnProperty.call(S.set,'geminiKey'));
+delete S.set.geminiKey;
 const save=()=>{try{localStorage.setItem('tro_v1',JSON.stringify(S))}catch(e){toast('Không lưu được!')}};
+if(hadLegacyGeminiKey)save();
 
 const INVT=[['old','Cột Chỉ số cũ'],['new','Cột Chỉ số mới'],['use','Cột Tiêu thụ'],['price','Cột Đơn giá'],['tenant','Tên người thuê'],['landlord','Tên chủ trọ'],['logo','Logo trên phiếu'],['words','Số tiền bằng chữ'],['bank','Thông tin chuyển khoản'],['sign','Chỗ ký tên'],['meters','Ảnh đồng hồ'],['thanks','Lời cảm ơn']];
-function fixS(){S.set=S.set||{};const d={};INVT.forEach(t=>d[t[0]]=true);S.set.inv=Object.assign(d,S.set.inv||{})}
+function fixS(){S.set=S.set||{};delete S.set.geminiKey;const d={};INVT.forEach(t=>d[t[0]]=true);S.set.inv=Object.assign(d,S.set.inv||{})}
 fixS();
 
 function setTop(){const l=$('lg'),g=S.set.logo;l.innerHTML=g?`<img src="${g}" alt="">`:'đ';l.classList.toggle('img',!!g)}
@@ -136,51 +139,19 @@ function shrink(f,maxW=800,q=0.75){return new Promise((ok,no)=>{
   im.onerror=no;im.src=u})}
 
 /* ---- Gemini OCR ---- */
-let _geminiSDK=null;
-async function getGeminiSDK(){
-  if(_geminiSDK)return _geminiSDK;
-  // Official Google Generative AI SDK — handles CORS correctly from browser
-  const mod=await import('https://esm.run/@google/generative-ai');
-  _geminiSDK=mod;return mod;}
-async function readMeterGemini(blob){
-  const key=(S.set.geminiKey||'').trim();
-  if(!key)throw{code:'no_key'};
+async function readMeterGemini(blob,meterType){
   const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result.split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
-  const prompt='Đọc chỉ số đồng hồ điện hoặc nước trong ảnh. Chỉ lấy dãy số nguyên màu đen (bỏ số thập phân màu đỏ/sau dấu phẩy). Bỏ số 0 vô nghĩa đứng đầu. Chỉ trả về JSON: {"reading":<số nguyên>} hoặc {"reading":null}. Không giải thích thêm.';
+  const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),30000);
   try{
-    const {GoogleGenerativeAI}=await getGeminiSDK();
-    const genAI=new GoogleGenerativeAI(key);
-    const model=genAI.getGenerativeModel({model:'gemini-1.5-flash'});
-    const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),20000);
-    try{
-      const result=await model.generateContent([
-        {inlineData:{mimeType:'image/jpeg',data:b64}},
-        prompt
-      ]);
-      clearTimeout(tid);
-      const text=(result.response.text()||'').trim();
-      const m=text.match(/\{[\s\S]*?\}/);
-      let reading=null;try{reading=(m?JSON.parse(m[0]):null)?.reading}catch(e){}
-      return reading;
-    }finally{clearTimeout(tid)}
-  }catch(err){
-    // If SDK fails (e.g. ESM blocked on Vercel), fallback to direct fetch with correct headers
-    if(err.code==='no_key')throw err;
-    const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
-    const ctrl2=new AbortController();const tid2=setTimeout(()=>ctrl2.abort(),20000);
-    try{
-      const r=await fetch(url,{method:'POST',
-        headers:{'Content-Type':'application/json','x-goog-api-key':key},
-        body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:'image/jpeg',data:b64}},{text:prompt}]}]}),
-        signal:ctrl2.signal,mode:'cors'});
-      clearTimeout(tid2);
-      if(!r.ok){let msg=`HTTP ${r.status}`;try{const e=await r.json();msg=(e.error&&e.error.message)||msg}catch(e){}throw{code:'api',msg}}
-      const d=await r.json();
-      const text=(d.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
-      const m=text.match(/\{[\s\S]*?\}/);
-      let reading=null;try{reading=(m?JSON.parse(m[0]):null)?.reading}catch(e){}
-      return reading;
-    }finally{clearTimeout(tid2)}}}
+    const r=await fetch('/api/read-meter',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image:b64,meterType}),
+      signal:ctrl.signal});
+    let data={};
+    try{data=await r.json()}catch(e){}
+    if(!r.ok)throw{code:'api',status:r.status,error:data.error,message:data.message};
+    return data.reading;
+  }finally{clearTimeout(tid)}}
 
 const nv=(b,k)=>b['n'+k]===''?b['o'+k]:num(b['n'+k]);
 
@@ -272,21 +243,21 @@ $('file').onchange=async e=>{
     if(imgEl){imgEl.src=r64;piEl.style.display='block'}
     URL.revokeObjectURL(url);
     // OCR
-    const reading=await readMeterGemini(blob);
+    const reading=await readMeterGemini(blob,k==='E'?'điện':'nước');
     if(reading==null||isNaN(+reading)){if(aEl)aEl.textContent='';return toast('Không đọc được số, hãy chụp rõ hơn hoặc nhập tay')}
     B['n'+k]=String(+reading);$('n'+k).value=B['n'+k];
     if(aEl)aEl.textContent=`✅ AI đọc: ${+reading} (hãy kiểm tra lại)`;calc();
   }catch(err){
     if(aEl)aEl.textContent='';
-    if(err&&err.code==='no_key')return toast('Chưa nhập Gemini API Key trong Cài đặt ⚙️');
     if(err&&err.code==='api'){
-      const m=err.msg||'';
-      if(m.includes('API_KEY_INVALID')||m.includes('invalid'))return toast('API Key không hợp lệ, kiểm tra lại trong Cài đặt');
-      if(m.includes('quota')||m.includes('QUOTA'))return toast('Đã hết quota miễn phí hôm nay, thử lại ngày mai');
-      return toast('Lỗi Gemini: '+m.slice(0,80));
+      if(err.error==='missing_api_key')return toast('Vercel chưa được cấu hình GEMINI_API_KEY');
+      const m=(err.message||'').toLowerCase();
+      if(err.status===401||err.status===403||m.includes('api key not valid'))return toast('API key Gemini không hợp lệ hoặc thiếu quyền');
+      if(err.status===429||m.includes('quota'))return toast('Gemini hết hạn mức hoặc đang quá tải, thử lại sau');
+      return toast('Lỗi Gemini: '+(err.message||`HTTP ${err.status}`).slice(0,100));
     }
     if(err&&err.name==='AbortError')return toast('Hết thời gian chờ, kiểm tra kết nối mạng rồi thử lại');
-    if(err&&(String(err).includes('fetch')||String(err).includes('network')))return toast('Lỗi mạng — kiểm tra kết nối rồi thử lại');
+    if(err&&(String(err).includes('fetch')||String(err).includes('network')))return toast('Không kết nối được API. Hãy mở app trên Vercel và kiểm tra đã triển khai thư mục api.');
     toast('Lỗi đọc ảnh: '+(err&&err.message||String(err)).slice(0,60));}};
 
 /* ---- Finish bill ---- */
@@ -404,9 +375,8 @@ function vSet(){const s=S.set;window._sx=JSON.parse(JSON.stringify(s.extras));
 app.innerHTML=`<h1>Cài đặt</h1>
 <div class="gemkey">
 <h2>🔑 Gemini API Key <span style="font-size:12px;font-weight:400;opacity:.8">(miễn phí)</span></h2>
-<div class="mut" style="margin:4px 0 10px">Dùng để đọc số đồng hồ bằng AI · <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#1a73e8">Lấy key miễn phí tại đây →</a></div>
-<input id="sgk" value="${esc(s.geminiKey||'')}" placeholder="Dán key vào đây (AIzaSy... hoặc AQ....)" oninput="S.set.geminiKey=this.value.trim();save()">
-<div class="mut" style="margin-top:6px">${s.geminiKey?`✅ Đã có key (${esc(s.geminiKey.slice(0,8))}...) · Dán key mới để thay đổi`:'⚠️ Chưa có key — không thể đọc ảnh tự động'}</div>
+<div class="mut" style="margin:4px 0 10px">Đọc số đồng hồ bằng Gemini. Khóa được lưu an toàn ở máy chủ, không nhập hoặc lưu khóa trong trình duyệt.</div>
+<div class="mut"><b>Cấu hình Vercel:</b> Project → Settings → Environment Variables → thêm <code>GEMINI_API_KEY</code> (dùng khóa mới), chọn môi trường Production rồi Redeploy. <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#1a73e8">Tạo API key →</a></div>
 </div>
 <div class="card"><div class="mut" style="margin-bottom:6px">Giá & tiền phòng mặc định khi thêm phòng mới</div>
 <div class="row"><div><label>Giá điện (đ/kWh)</label><input id="se" type="number" value="${s.elec}"></div><div><label>Giá nước (đ/m³)</label><input id="sw" type="number" value="${s.water}"></div></div>
