@@ -140,7 +140,7 @@ async function readMeterGemini(blob){
   const key=(S.set.geminiKey||'').trim();
   if(!key)throw {code:'no_key'};
   const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result.split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
-  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${key}`;
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`;
   const body={contents:[{parts:[{inline_data:{mime_type:'image/jpeg',data:b64}},{text:'Đọc chỉ số đồng hồ trong ảnh. Chỉ lấy các chữ số đen nguyên (bỏ chữ số đỏ/thập phân). Trả về JSON: {"reading": <số nguyên hoặc null>}. Không giải thích gì thêm.'}]}]};
   const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),12000);
   try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
